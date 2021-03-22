@@ -1,0 +1,36 @@
+{{extend 'layout.html'}}
+
+{{block header}}
+<div class="jumbotron jumbotron-fluid background" style="background-color: #333; color:white; padding:30px;word-wrap:break-word;">
+  <div class="container center">
+    <span style="float:left">{{=request.now.strftime("%H:%M:%S")}}</span>
+  </div>
+</div>
+{{end}}
+
+{{sensor=request.vars['sensor']
+  title=request.vars['title']
+}}
+
+<table width="340" cellpadding="1" cellspacing="0" border="0" align="center">
+  <tr>
+    <td>{{=title}}</td>
+    <td style="text-align:center">1</td>
+    <td style="text-align:center">2</td>
+    <td style="text-align:center">3</td>
+  </tr>
+ {{days_of_the_week = {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun", 7: "Daily"}
+  for day in message.keys():}}
+    <tr>
+      <td>{{=days_of_the_week[day]}}</td>
+      <td {{if len(message[day]) > 0:}}style="text-align:center">{{=message[day][0]["Time"][0:5]}}<br/>{{=message[day][1]["Time"][0:5]}}</td>
+      {{pass}}
+      <td {{if len(message[day]) > 2:}}style="text-align:center">{{=message[day][2]["Time"][0:5]}}<br/>{{=message[day][3]["Time"][0:5]}}</td>
+      {{pass}}
+      <td {{if len(message[day]) > 4:}}style="text-align:center">{{=message[day][4]["Time"][0:5]}}<br/>{{=message[day][5]["Time"][0:5]}}</td>
+      {{pass}}
+    </tr>
+  {{pass}}
+
+
+</table>

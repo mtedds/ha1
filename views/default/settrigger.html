@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+{{sensor=request.vars['sensor']
+  time=request.vars['time']
+  if message[0] == 0:
+      rc = "Success"
+      pass
+  else:
+      rc = "Failure"
+      pass
+}}
+{{=f"{sensor} set to trigger at {time}: {rc}"}}
+</html>

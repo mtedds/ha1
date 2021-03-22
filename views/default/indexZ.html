@@ -1,0 +1,69 @@
+{{extend 'layout.html'}}
+
+{{block header}}
+<div class="jumbotron jumbotron-fluid background" style="background-color: #333; color:white; padding:30px;word-wrap:break-word;">
+  <div class="container center">
+    <span style="float:left">{{=request.now.strftime("%H:%M:%S")}}</span>
+    <span style="float:right">Outside: {{=message["Outside Temperature"]}}&deg</span>
+  </div>
+</div>
+{{end}}
+
+<table width="300" cellpadding="1" cellspacing="0" border="0" align="center">
+  <tr>
+    <td>Heat Pump</td>
+    <td style="text-align:center">Current</td>
+    <td style="text-align:center">Set</td>
+    <td style="text-align:center">Until</td>
+  </tr>
+  <tr>
+    <td>Hot Water</td>
+    <td {{if message["DHW Mode"] == "1":}}style="color:red;text-align:center;font-weight:bold"
+        {{elif message["DHW is on"]:}}style="color:green;text-align:center;font-weight:bold"
+        {{else:}}style="text-align:center"{{pass}}>{{=message["Hot Water Temperature"]}}&deg</td>
+    <td style="text-align:center">{{=message["Set Hot Water Temperature"]}}&deg</td>
+    <td style="text-align:center">{{=A(message["DHW next switch"], _href=URL('prog.html', vars=dict(sensor='DHW',title='Hot water')))}}</td>
+  </tr>
+  <tr>
+    <td>Heating</td>
+    <td {{if message["Heating Mode"] == "1":}}style="color:red;text-align:center;font-weight:bold"
+        {{elif message["HC is on"]:}}style="color:green;text-align:center;font-weight:bold"
+        {{else:}}style="text-align:center"{{pass}}>{{=message["Buffer Temperature"]}}&deg</td>
+    <td style="text-align:center">{{=message["Set Buffer Temperature"]}}&deg</td>
+    <td style="text-align:center">{{=A(message["HC next switch"], _href=URL('prog.html', vars=dict(sensor='HC',title='Heating')))}}</td>
+  </tr>
+  {{if int(message["Compressor Idle"]) > 0:}}
+  <tr>
+    <td style="text-align:right">Heat pump idle for</td>
+    <td style="text-align:center">{{=message["Compressor Idle"]}} more</td>
+    <td style="text-align:left">minutes</td>
+  </tr>
+  {{pass}}
+  <tr><td></br></td></tr>
+  <tr> <td>Heating</td> <td></td> <td></td> <td style="text-align:center">Until</td> </tr>
+  <tr>
+    <td>Radiators</td>
+    <td {{if message["Radiators relay"] == "1":}}style="color:green;text-align:center;font-weight:bold">On
+        {{else:}}style="text-align:center">Off{{pass}}</td>
+    <td></td>
+    <td style="text-align:center">{{=A(message["Radiators next switch"], _href=URL('prog.html', vars=dict(sensor='Radiators relay',title='Radiators')))}}</td>
+  </tr>
+  <tr>
+    <td>Ufloor ground</td>
+    <td {{if message["Ufloor ground relay"] == "1":}}style="color:green;text-align:center;font-weight:bold">On
+        {{else:}}style="text-align:center">Off{{pass}}</td>
+    <td></td>
+    <td style="text-align:center">{{=A(message["Ufloor ground next switch"], _href=URL('prog.html', vars=dict(sensor='Ufloor ground relay',title='Ufloor ground')))}}</td>
+  </tr>
+  <tr>
+    <td>Ufloor first</td>
+    <td {{if message["Ufloor first relay"] == "1":}}style="color:green;text-align:center;font-weight:bold">On
+        {{else:}}style="text-align:center">Off{{pass}}</td>
+    <td></td>
+    <td style="text-align:center">{{=A(message["Ufloor first next switch"], _href=URL('prog.html', vars=dict(sensor='Ufloor first relay',title='Ufloor first')))}}</td>
+  </tr>
+</table>
+
+
+
+

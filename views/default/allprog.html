@@ -1,0 +1,43 @@
+{{extend 'layout.html'}}
+
+{{block header}}
+<div class="jumbotron jumbotron-fluid background" style="background-color: #333; color:white; padding:30px;word-wrap:break-word;">
+  <div class="container center">
+    <span style="float:left">{{=request.now.strftime("%H:%M:%S")}}</span>
+  </div>
+</div>
+{{end}}
+
+<table width="340" cellpadding="1" cellspacing="0" border="0" align="center">
+  <tr>
+    <td></td>
+  {{for sensor in message.keys():}}
+    <td style="text-align:center">{{=sensor}}</td>
+    {{pass}}
+  </tr>
+ {{days_of_the_week = {0: "Mon", 1: "Tue", 2: "Wed", 3: "Thu", 4: "Fri", 5: "Sat", 6: "Sun", 7: "Daily"}
+  for day in range(8):}}
+    <tr>
+      <td>{{=days_of_the_week[day]}}</td>
+      {{for sensor in message.keys():
+            if day in message[sensor].keys():
+                line1 = message[sensor][day][0]["Time"][0:5]
+                line2 = message[sensor][day][1]["Time"][0:5]
+                if len(message[sensor][day]) > 2:
+                    line1 += " " + message[sensor][day][2]["Time"][0:5]
+                    line2 += " " + message[sensor][day][3]["Time"][0:5]
+                    if len(message[sensor][day]) > 4:
+                        line1 += " " + message[sensor][day][4]["Time"][0:5]
+                        line2 += " " + message[sensor][day][5]["Time"][0:5]
+                        pass
+                pass
+            else:
+                line1 = " "
+                line2 = " "
+            pass
+      }}
+      <td style="text-align:center"><span style=" white-space: nowrap;">{{=line1}}</span><br/><span style=" white-space: nowrap;">{{=line2}}</span></td>
+    {{pass}}
+    </tr>
+  {{pass}}
+</table>

@@ -1,4 +1,4 @@
-{{extend 'layout.html'}}
+{{extend 'layout_orig.html'}}
 
 
   <link rel="stylesheet" href="http://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -28,17 +28,8 @@ p {
 
 .off {
   color: black;
-  background: white;
+  background: grey;
 }
-</style>
-
-<!-- This removes the outline around the time in the spinner when you click an arrow -->
-<style>
-.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button {
-  outline: none;
-}
-
-
 </style>
 
 
@@ -61,23 +52,30 @@ p {
     <td>Heat Pump</td>
     <td style="text-align:center">Current</td>
     <td style="text-align:center">Set</td>
+    <td></td>
     <td style="text-align:center">Until</td>
   </tr>
   <tr>
-    <td>Hot Water</td>
+    <td>{{=A("Hot Water", _href=URL('prog.html', vars=dict(sensor='DHW',title='Hot water')))}}</td>
     <td {{if message["DHW Mode"] == "1":}}style="color:red;text-align:center;font-weight:bold"
         {{elif message["DHW is on"]:}}style="color:green;text-align:center;font-weight:bold"
         {{else:}}style="text-align:center"{{pass}}>{{=message["Hot Water Temperature"]}}&deg</td>
     <td style="text-align:center">{{=message["Set Hot Water Temperature"]}}&deg</td>
-    <td style="text-align:center">{{=A(message["DHW next switch"], _href=URL('prog.html', vars=dict(sensor='DHW',title='Hot water')))}}</td>
+    <td width=""50px"><p id="DHW_relay" name="DHW" {{if message["DHW is on"]:}}class="on">on
+      {{else:}}class="off">off{{pass}}</p></td>
+    <td>
+        <input id="DHW" class="myspin" name="Hot Water" value='{{=message["DHW next switch"]}}' style="width:50px;height:20px;align:right" >
+    </td>
   </tr>
   <tr>
-    <td>Heating</td>
-    <td name="HC" {{if message["Heating Mode"] == "1":}}style="color:red;text-align:center;font-weight:bold"
+    <td>{{=A("Heating", _href=URL('prog.html', vars=dict(sensor='HC',title='Heating')))}}</td>
+    <td {{if message["Heating Mode"] == "1":}}style="color:red;text-align:center;font-weight:bold"
         {{elif message["HC is on"]:}}style="color:green;text-align:center;font-weight:bold"
         {{else:}}style="text-align:center"{{pass}}>{{=message["Buffer Temperature"]}}&deg</td>
     <td style="text-align:center">{{=message["Set Buffer Temperature"]}}&deg</td>
-    <td style="text-align:center">{{=A(message["HC next switch"], _href=URL('prog.html', vars=dict(sensor='HC',title='Heating')))}}</td>
+    <td width=""50px" {{if message["HC is on"]:}}style="color:green;font-weight:bold">on
+     {{else:}}>off{{pass}}</td>
+    <td style="text-align:center">{{=message["HC next switch"]}}</td>
   </tr>
 </table>
 
@@ -89,102 +87,91 @@ p {
 
 {{hc_zones = {"Rad":"Radiators", "UFG": "Ufloor ground", "UFF": "Ufloor first"} }}
  <table width="300" cellpadding="1" cellspacing="0" border="0" align="center">
-  <tr> <td>Heating</td> <td></td>  <td></td> <td style="text-align:center">Until   </td> </tr>
+  <tr> <td>Heating</td> <td></td>  <td></td> <td style="text-align:left">Until   </td> </tr>
     {{for hc in hc_zones.keys():}}
    <tr>
      <td>{{=A(hc_zones[hc], _href=URL('prog.html', vars=dict(sensor=f'{hc_zones[hc]} relay',title=f'{hc_zones[hc]}')))}}</td>
      <td width=""50px"><p id="{{=f'{hc}_relay'}}" name="{{=f'{hc_zones[hc]} relay'}}" {{if message[f"{hc_zones[hc]} relay"] == "1":}}class="on">on
      {{else:}}class="off">off{{pass}}</p></td>
     <td></td>
-<!-- TODO refresh this field when change state on / off -->
 <!-- TODO set this field red if not equal to the permanent programme -->
    <td>
-  <input id="{{=hc}}" class="myspin" name={{=f"{hc_zones[hc]}"}} value='{{=message[f"{hc_zones[hc]} next switch"]}}' style="width:40px;height:12px;align:right" readonly>
+  <input id="{{=hc}}" class="myspin" name={{=f"{hc_zones[hc]}"}} value='{{=message[f"{hc_zones[hc]} next switch"]}}' style="width:50px;height:20px;align:right">
    </td>
    </tr>
    {{pass}}
 </table>
-
-
-<!-- TODO allow time to be typed in here when click - move prog call to title -->
-<script>
-  $(".myspin").click(function() {
-    window.location.href = "{{=URL('prog.html', vars=dict(sensor='Radiators relay',title='Radiators'))}}";
-    });
-</script>
 
 <script>
   $("p").click(function() {
     var message = "Switch " + $(this).attr("name") + "?";
     var this_id = $(this).attr("id");
     var target_time_id = this_id.substring(0, this_id.length-6);
+    var set_value = 0;
     if ($(this).hasClass("on")) {
       $(this).toggleClass("on");
       $(this).toggleClass("off");
       $(this).text("off");
-      $.ajax({
-        url: "{{=URL('default', 'setsensor')}}",
-        data: { sensor: $(this).attr("name"), value: 0 }
-        })
-        .done(function(msg) {
-          $("#"+target_time_id).timespinner("value", msg);
-          });
+      set_value = 0;
+
     }
     else {
       $(this).toggleClass("off");
       $(this).toggleClass("on");
       $(this).text("on");
-      $.ajax({
-        url: "{{=URL('default', 'setsensor')}}",
-        data: { sensor: $(this).attr("name"), value: 1 }
-        })
-        .done(function(msg) {
-          $("#"+target_time_id).timespinner("value", msg);
-          });
+      set_value = 1;
     };
+    $.ajax({
+        url: "{{=URL('default', 'setsensor')}}",
+        data: { sensor: $(this).attr("name"), value: set_value }
+      })
+      .done(function(msg) {
+            $("#"+target_time_id).val(msg);
+        });
   });
 </script>
 
-<!-- This is for the time spinners -->
 <script>
-  Globalize.culture("de-DE");
-  $( function() {
-    $.widget( "ui.timespinner", $.ui.spinner, {
-      options: {
-        // seconds (15 minutes...)
-        step: 15 * 60 * 1000,
-        // hours
-        page: 60
-      },
-
-      _parse: function( value ) {
-        if ( typeof value === "string" ) {
-          // already a timestamp
-          if ( Number( value ) == value ) {
-            return Number( value );
-          }
-          return +Globalize.parseDate( value );
-        }
-        return value;
-      },
-
-      _format: function( value ) {
-        return Globalize.format( new Date(value), "t" );
-      }
-  });
 
     {{for hc in hc_zones.keys():}}
-    $( "#{{=hc}}" ).timespinner({
-        stop: function() {
+
+    $( "#{{=hc}}" ).on("change",
+        function() {
             var state = 0;
-            if ( $('#{{=f'{hc}_relay'}}').attr("class") == "on" ) { state = 1 };
-            $.ajax({
-                url: "{{=URL('default', 'setsensor')}}",
-                data: { sensor: '{{=f"{hc_zones[hc]} relay"}}', value: state, time:  $(this).val()} });
+            var regexp = /([01][0-9]|[02][0-3]):[0-5][0-9]/;
+            var valid_time = ($(this).val().search(regexp) >= 0) ? true : false;
+            if (valid_time) {
+                if ( $("#{{=f'{hc}_relay'}}").attr("class") == "on" ) { state = 1 };
+                $.ajax({
+                    url: "{{=URL('default', 'setsensor')}}",
+                    data: { sensor: '{{=f"{hc_zones[hc]} relay"}}', value: state, time:  $(this).val()} });
+                $(this).blur();
+                }
+            else {
+                alert("Invalid time");
+                };
         }
-    });
+    );
     {{pass}}
 
-  } );
+    $( "#DHW" ).on("change",
+        function() {
+            var state = 0;
+            var regexp = /([01][0-9]|[02][0-3]):[0-5][0-9]/;
+            var valid_time = ($(this).val().search(regexp) >= 0) ? true : false;
+            if (valid_time) {
+                if ( $('#DHW_relay').attr("class") == "on" ) { state = 1 };
+                $.ajax({
+                    url: "{{=URL('default', 'setsensor')}}",
+                    data: { sensor: 'DHW', value: state, time:  $(this).val()} });
+                $(this).blur();
+                }
+            else {
+                alert("Invalid time");
+                };
+        }
+    );
+
+
 </script>
 

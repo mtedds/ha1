@@ -284,6 +284,23 @@ class Database:
         else:
             return True
 
+    def get_DHW_interval(self, in_day):
+        self.logger.debug(f"database get_DHW_interval {in_day}")
+        cursor = self.dbConnection.cursor()
+        cursor.execute(
+            f"""select Time, SetValue, TimedTriggerId
+                    from TimedTrigger, Action
+                    where Day = ?
+                    and SensorName = "DHW"
+                    and Status = "External"
+                    and TimedTrigger.ActionId = Action.ActionId
+                    order by to_seconds(Time)""",
+            (in_day,))
+        trigger_times = cursor.fetchall()
+        cursor.close()
+
+        return trigger_times
+
     # This finds the timed trigger entry for the sensor
     def current_relay_interval(self, in_sensor_name):
         self.logger.debug(f"database current_relay_interval {in_sensor_name}")
@@ -335,13 +352,22 @@ class Database:
 
         # This is set when we process a Once trigger that is masking an Active trigger at the same time
         ignore_next = False
+
+        # This is set if we find a trigger at midnight (23:59:59)
+        # and we need to check if the next trigger switches it back
+        midnight = False
+
         # Search for today
         for trigger in trigger_times:
+            # If last switch was 23:59:59 and this is 00:00:00 it must be an external interval over midnight
+            if midnight and trigger["Time"] == "00:00:00":
+                ignore_next = True
             if trigger["Day"] == current_day_of_week:
                 if current_time < int(trigger["Time"][0:2]) * 60 + int(trigger["Time"][3:5]):
                     if trigger["SetValue"] != in_value and not ignore_next:
                         return_triggers[1] = trigger
-                        return return_triggers
+                        if not trigger["Time"] == "23:59:59":
+                            return return_triggers
                     # We have found a masking Once trigger
                     elif trigger["SetValue"] == in_value and trigger["Status"] == "Once":
                         ignore_next = True
@@ -357,10 +383,13 @@ class Database:
                     ignore_next = True
                 else:
                     ignore_next = False
+            if trigger["Time"] == "23:59:59":
+                midnight = True
             # Move the prior trigger on if it actually set it to the current value
             # - or use it anyway if we have come in with a -1 value (just find current interval)
-            if trigger["SetValue"] == in_value or in_value == -1:
+            if (trigger["SetValue"] == in_value or in_value == -1) and not midnight:
                 return_triggers[0] = trigger
+
 
         # Must be end of Sunday so next trigger is first thing on Monday
         return_triggers[1] = trigger_times[0]
@@ -461,10 +490,14 @@ class Database:
         self.logger.debug(
             f"database create_replace_trigger {in_sensor_name} {in_day} {in_time} {in_timed_trigger_id}")
 
+        # Find the current time for the trigger
+        search_filter = {"TimedTriggerId": in_timed_trigger_id}
+        timed_trigger = self.object_find("TimedTrigger", search_filter)
+
         # First create the Action to replace the time
         values = {"TimedTriggerToUpdate": in_timed_trigger_id,
                   "SensorName": in_sensor_name,
-                  "SetValue": in_time
+                  "SetValue": timed_trigger[0]["Time"]
                   }
         new_action_id = self.object_create("Action", values)
 
@@ -517,6 +550,26 @@ class Database:
             (in_sensor,))
         cursor.close()
 
+    def find_replace_triggers(self, in_sensor):
+        # TODO implement day of the week!!!
+        self.logger.debug(f"database find_replace_triggers {in_sensor}")
+        cursor = self.dbConnection.cursor()
+        cursor.execute(
+                """select Action.ActionId, Action.SensorName, Action.VariableType, Action.SetValue
+                , Action.TimedTriggerToUpdate
+                , TimedTrigger.TimedTriggerID, TimedTrigger.Status
+                , TimedTrigger.Description Description
+                , TimedTrigger.Time, TimedTrigger.Day
+                from TimedTrigger, Action
+                where TimedTrigger.ActionId = Action.ActionId
+                and Status = "Replace"
+                and Action.SensorName = ?
+                order by to_seconds(Time), TimedTrigger.TimedTriggerId
+                """,
+                (in_sensor, ))
+        actions = cursor.fetchall()
+        cursor.close()
+        return actions
 
     def read_prog(self, in_sensor_name):
         self.logger.debug(f"database read_prog {in_sensor_name}")
@@ -576,6 +629,29 @@ class Database:
                     """,
             (in_actionids[0], in_actionids[1]))
         cursor.close()
+
+    def update_trigger(self, in_sensor, in_day, in_group, in_value, in_time):
+        self.logger.debug(f"database update_trigger {in_sensor} {in_day} {in_group} {in_value} {in_time}")
+
+        # Message from UI to modify a timed trigger for one of the programmes
+        # TODO Add group as a column to the timedtrigger table to avoid the fuzzy match
+
+        sql = f"""update timedtrigger set time = ?
+                    where timedtriggerid = 
+                      (select timedtriggerid from timedtrigger, action
+                       where timedtrigger.actionid = action.actionid
+                         and action.sensorname = ?
+                         and timedtrigger.value = ?
+                         and timedtrigger.day = ?
+                         and timedtrigger.description like '%{in_group}%')
+        """
+        vals = {in_time, in_sensor, in_value, in_day}
+
+        cursor = self.dbConnection.cursor()
+        cursor.execute(sql, vals)
+        self.dbConnection.commit()
+        cursor.close()
+
 
     def store_prog(self, in_sensor, in_intervals):
         self.logger.debug(f"database store_prog {in_sensor} {in_intervals}")

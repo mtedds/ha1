@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 {{sensor=request.vars['sensor']
+  day=request.vars['day']
+  group=request.vars['group']
+  value=request.vars['value']
   time=request.vars['time']
   if message[0] == 0:
       rc = "Success"
@@ -9,5 +12,5 @@
       rc = "Failure"
       pass
 }}
-{{=f"{sensor} set to trigger at {time}: {rc}"}}
+{{=f"{sensor} Day:{day} Group:{group} value:{value} set to trigger at {time}: {rc}"}}
 </html>

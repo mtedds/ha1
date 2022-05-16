@@ -277,6 +277,10 @@ class Database:
     def hp_is_on(self, in_sensor):
         self.logger.debug(f"database hp_is_on {in_sensor}")
 
+        if in_sensor == "HC":
+            if int(self.get_sensor_value_by_name("Operating Mode")) == 5:
+                return False
+
         interval = self.current_relay_interval(in_sensor)
 
         if interval[0]["SetValue"] == "0":
@@ -641,14 +645,14 @@ class Database:
                       (select timedtriggerid from timedtrigger, action
                        where timedtrigger.actionid = action.actionid
                          and action.sensorname = ?
-                         and timedtrigger.value = ?
+                         and action.setvalue = ?
+                         and timedtrigger.status in ('Active', 'External')
                          and timedtrigger.day = ?
                          and timedtrigger.description like '%{in_group}%')
         """
-        vals = {in_time, in_sensor, in_value, in_day}
 
         cursor = self.dbConnection.cursor()
-        cursor.execute(sql, vals)
+        cursor.execute(sql, (in_time, in_sensor, in_value, in_day))
         self.dbConnection.commit()
         cursor.close()
 

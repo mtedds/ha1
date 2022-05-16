@@ -1,4 +1,5 @@
 import Database
+# TODO: Add controller database as a variable (changing it means editing it in 4-5 places!)
 import Message
 import time
 # TODO: Remove this for Production
@@ -17,7 +18,7 @@ import logging
 if request.application not in logging.root.manager.loggerDict:
     logger = logging.getLogger(request.application)
     logger.setLevel(logging.DEBUG)
-    f_handler = logging.FileHandler("/var/log/web2py.log")
+    f_handler = logging.FileHandler("/var/log/web2py/web2py.log")
     f_handler.setLevel(logging.DEBUG)
     f_format = logging.Formatter("%(asctime)s:%(levelname)s: %(message)s")
     f_handler.setFormatter(f_format)
@@ -28,7 +29,7 @@ else:
 
 # ---- example index page ----
 def index():
-    my_database = Database.Database("//home/pi/controller/controller/controller.db", logger)
+    my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
     # response.flash = T("Hello World")
     sensors = my_database.read_all_sensors()
 
@@ -50,7 +51,7 @@ def indexB():
 
 def prog():
     logger.debug(f"prog {request.vars}")
-    my_database = Database.Database("//home/pi/controller/controller/controller.db", logger)
+    my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
     return dict(message=my_database.read_prog(request.vars["sensor"]))
 
 def progB():
@@ -60,7 +61,7 @@ def progB():
 
 def allprog():
     logger.debug(f"allprog {request.vars}")
-    my_database = Database.Database("//home/pi/controller/controller/controller.db", logger)
+    my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
     all_progs = {}
     titles = {"DHW" : "Hot water"
             , "HC": "Heating"
@@ -77,7 +78,7 @@ def setsensor():
     # Parameters: sensor value [time]
     logger.debug(f"setsensor {request.vars}")
     my_message = Message.Message("homeserver", 1883, 60, "web2py", when_message, {}, logger)
-    my_database = Database.Database("//home/pi/controller/controller/controller.db", logger)
+    my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
 
     send_value = request.vars["value"]
 
@@ -106,7 +107,7 @@ def when_message(client, userdata, msg):
 
 
 def test():
-    my_database = Database.Database("//home/pi/controller/controller/controller.db", logger)
+    my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
     # response.flash = T("Hello World")
     sensors = my_database.read_all_sensors()
     return dict(message=sensors)

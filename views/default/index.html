@@ -73,8 +73,8 @@ p {
         {{elif message["HC is on"]:}}style="color:green;text-align:center;font-weight:bold"
         {{else:}}style="text-align:center"{{pass}}>{{=message["Buffer Temperature"]}}&deg</td>
     <td style="text-align:center">{{=message["Set Buffer Temperature"]}}&deg</td>
-    <td width=""50px" {{if message["HC is on"]:}}style="color:green;font-weight:bold">on
-     {{else:}}>off{{pass}}</td>
+    <td width=""50px"><p id="HC_relay" name="HC" {{if message["HC is on"]:}}class="on">on
+      {{else:}}class="off">off{{pass}}</p></td>
   </tr>
 </table>
 
@@ -99,6 +99,13 @@ p {
    </td>
    </tr>
    {{pass}}
+</table>
+
+</br>
+
+<table width="300" cellpadding="1" cellspacing="0" border="0" align="center">
+  <tr> <td>Power consumption</td> <td>{{=message["Current Watts"]}} W</td>  </tr>
+  <tr> <td>Total consumption</td> <td>{{=int(float(message["Total Energy WH"])/1000)}} kWH</td>  </tr>
 </table>
 
 <script>
@@ -168,6 +175,17 @@ p {
             else {
                 alert("Invalid time");
                 };
+        }
+    );
+
+    $( "#HC" ).on("change",
+        function() {
+            var state = 0;
+            if ( $('#HC_relay').attr("class") == "on" ) { state = 1 };
+            $.ajax({
+                    url: "{{=URL('default', 'setsensor')}}",
+                    data: { sensor: 'HC', value: state, time:  $(this).val()} });
+            $(this).blur();
         }
     );
 

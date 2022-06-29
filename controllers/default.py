@@ -9,11 +9,6 @@ importlib.reload(Message)
 
 import logging
 
-# -*- coding: utf-8 -*-
-# -------------------------------------------------------------------------
-# This is a sample controller
-# this file is released under public domain and you can use without limitations
-# -------------------------------------------------------------------------
 
 if request.application not in logging.root.manager.loggerDict:
     logger = logging.getLogger(request.application)
@@ -27,7 +22,6 @@ else:
     logger = logging.getLogger(request.application)
 
 
-# ---- example index page ----
 def index():
     my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
     # response.flash = T("Hello World")

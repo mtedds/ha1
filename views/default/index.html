@@ -105,6 +105,7 @@ p {
 
 <table width="300" cellpadding="1" cellspacing="0" border="0" align="center">
   <tr> <td>Power consumption</td> <td>{{=message["Current Watts"]}} W</td>  </tr>
+  <tr> <td>Daily consumption</td> <td>{{='%.2f' % ((float(message["Total Energy WH"])-float(message["Begin Day Total Energy WH"]))/1000)}} kWH</td>  </tr>
   <tr> <td>Total consumption</td> <td>{{=int(float(message["Total Energy WH"])/1000)}} kWH</td>  </tr>
 </table>
 

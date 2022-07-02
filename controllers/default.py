@@ -2,6 +2,7 @@ import Database
 # TODO: Add controller database as a variable (changing it means editing it in 4-5 places!)
 import Message
 import time
+import subprocess
 # TODO: Remove this for Production
 import importlib
 importlib.reload(Database)
@@ -27,6 +28,21 @@ def index():
     # response.flash = T("Hello World")
     sensors = my_database.read_all_sensors()
 
+    controllerProcess = subprocess.run(['systemctl', 'is-active',  'controller'],
+                             stdout=subprocess.PIPE,
+                             universal_newlines=True)
+    controllerProcess
+
+    ISGProcess = subprocess.run(['applications/ha1/modules/checkisg.sh'],
+                                       stdout=subprocess.PIPE,
+                                       universal_newlines=True)
+    ISGProcess
+
+    MyCProcess = subprocess.run(['applications/ha1/modules/checkmyc.sh'],
+                                       stdout=subprocess.PIPE,
+                                       universal_newlines=True)
+    MyCProcess
+
     # These are not really sensors!
     sensors["HC is on"] = my_database.hp_is_on("HC")
     sensors["DHW is on"] = my_database.hp_is_on("DHW")
@@ -35,6 +51,9 @@ def index():
     sensors["Radiators next switch"] = my_database.next_relay_switch_time("Radiators relay")[0:5]
     sensors["Ufloor ground next switch"] = my_database.next_relay_switch_time("Ufloor ground relay")[0:5]
     sensors["Ufloor first next switch"] = my_database.next_relay_switch_time("Ufloor first relay")[0:5]
+    sensors["Controller status"] = controllerProcess.stdout
+    sensors["ISG status"] = ISGProcess.stdout
+    sensors["MyController status"] = MyCProcess.stdout
 
     return dict(message=sensors)
 

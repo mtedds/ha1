@@ -45,6 +45,17 @@ p {
 {{operating_modes = {0: "Emergency", 1: "Standby", 2: "Programme", 3: "Comfort", 4: "Eco", 5: "DHW Only"} }}
   <div style="text-align:center">Operating Mode: {{=operating_modes[int(message["Operating Mode"])]}}
   </div>
+<table width="200" cellpadding="1" cellspacing="0" border="0" align="center">
+  <tr>
+    <td {{if message["Controller status"][0:6] == "active":}}style="color:green;text-align:center"
+      {{else:}}style="color:red;text-align:center;font-weight:bold"{{pass}}>controller</td>
+    <td {{if message["ISG status"][0:6] == "active":}}style="color:green;text-align:center"
+      {{else:}}style="color:red;text-align:center;font-weight:bold"{{pass}}>ISG</td>
+    <td {{if message["MyController status"][0:6] == "active":}}style="color:green;text-align:center"
+      {{else:}}style="color:red;text-align:center;font-weight:bold"{{pass}}>MyController</td>
+  </tr>
+</table>
+
 </br>
 
 <table width="300" cellpadding="1" cellspacing="0" border="0" align="center">
@@ -105,8 +116,7 @@ p {
 
 <table width="300" cellpadding="1" cellspacing="0" border="0" align="center">
   <tr> <td>Power consumption</td> <td>{{=message["Current Watts"]}} W</td>  </tr>
-  <tr> <td>Daily consumption</td> <td>{{='%.2f' % ((float(message["Total Energy WH"])-float(message["Begin Day Total Energy WH"]))/1000)}} kWH</td>  </tr>
-  <tr> <td>Total consumption</td> <td>{{=int(float(message["Total Energy WH"])/1000)}} kWH</td>  </tr>
+  <tr> <td>Daily consumption</td> <td>{{='%.2f' % (float(message["Day Total Energy WH"])/1000)}} kWH</td>  </tr>
 </table>
 
 <script>

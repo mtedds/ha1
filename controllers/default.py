@@ -102,6 +102,9 @@ def setsensor():
     # TODO If this is just a "normal" set sensor (with no intervals - eg. Comfort temp) then do not try to return the next switch time
     my_message.set_sensor_control(request.vars["sensor"], send_value)
     time.sleep(1)
+    nextRelay = my_database.next_relay_switch_time_value(request.vars["sensor"], request.vars["value"])
+    if len(nextRelay) == 0:
+        return dict(message="Ok")
     return dict(message=my_database.next_relay_switch_time_value(request.vars["sensor"], request.vars["value"])[0:5])
 
 

@@ -118,9 +118,29 @@ def settrigger():
 
 
 def when_message(client, userdata, msg):
-    # This is a dummy method just for the Message object above
+    # This is a dummy method just for the Message object above and elsewhere
     pass
 
+def savingsessions():
+    my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)
+    # response.flash = T("Hello World")
+    time.sleep(3)
+    existing_session = my_database.read_savingsession()
+    return dict(message=existing_session)
+
+def setsavingsession():
+    # Parameters: dayofweek start(time) (endtime)
+    logger.debug(f"setsavingsession {request.vars}")
+    my_message = Message.Message("homeserver", 1883, 60, "web2py", when_message, {}, logger)
+
+    return my_message.set_savingsession_control(request.vars["dayofweek"], request.vars["start"], request.vars["end"])
+
+def deletesavingsession():
+    # Parameters: dayofweek start(time) (endtime)
+    logger.debug(f"setsavingsession {request.vars}")
+    my_message = Message.Message("homeserver", 1883, 60, "web2py", when_message, {}, logger)
+
+    return my_message.set_savingsession_control()
 
 def test():
     my_database = Database.Database("/home/pi/controller/controller/controller.db", logger)

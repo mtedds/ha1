@@ -6,7 +6,9 @@
 # ----------------------------------------------------------------------------------------------------------------------
 
 response.menu = [
-    (T('Home'), False, URL('default', 'index'), [])
+    (T('Home'), False, URL('default', 'index'), []),
+    (T('Programmes'), False, URL('allprog')),
+    (T('Saving Sessions'), False, URL('savingsessions')),
 ]
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -16,7 +18,6 @@ response.menu = [
 if not configuration.get('app.production'):
     _app = request.application
     response.menu += [
-        (T('Programmes'), False, URL('allprog')),
         (T('This App'), False, '#', [
             (T('Design'), False, URL('admin', 'default', 'design/%s' % _app)),
             (T('Controller'), False,

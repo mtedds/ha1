@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+{{dayofweek=request.vars['dayofweek']
+  start=request.vars['start']
+  end=request.vars['end']
+  if message[0] == 0:
+      rc = "Success"
+      pass
+  else:
+      rc = "Failure"
+      pass
+}}
+{{=f"Saving Session set for {dayofweek} between {start} and {end}: {rc}"}}
+</html>

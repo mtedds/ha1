@@ -1,0 +1,133 @@
+{{extend 'layout_orig.html'}}
+
+  <style>
+    .ui-controlgroup-vertical {
+      width: 150px;
+    }
+    .ui-controlgroup.ui-controlgroup-vertical > button.ui-button,
+    .ui-controlgroup.ui-controlgroup-vertical > .ui-controlgroup-label {
+      text-align: center;
+    }
+    #dayofweekbutton {
+      width: 120px;
+    }
+    .ui-controlgroup-horizontal .ui-spinner-input {
+      width: 20px;
+    }
+  </style>
+
+{{block header}}
+<div class="jumbotron jumbotron-fluid background" style="background-color: #333; color:white; padding:30px;word-wrap:break-word;">
+  <div class="container center">
+    <span style="float:left">{{=request.now.strftime("%H:%M:%S")}}</span>
+  </div>
+</div>
+{{end}}
+
+  {{days_of_the_week = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
+     if message == {}:
+       already_set = 0
+       day_of_week = "Monday"
+       start_time = "16:30"
+       end_time = "17:30"
+     else:
+       already_set = 1
+       day_of_week = days_of_the_week[message["dayofweek"]]
+       start_time = message["starttime"][0:5]
+       end_time = message["endtime"][0:5]
+     pass
+}}
+ <div style="text-align:center">Saving Sessions
+  </div>
+
+</br>
+
+<table width="340" cellpadding="1" cellspacing="0" border="0" align="center">
+  <tr>
+    <td>Day</td>
+    <td style="text-align:left">Start</td>
+    <td style="text-align:left">End</td>
+  </tr>
+
+  <tr>
+    <td><div class="widget">
+        <fieldset>
+          <div class="controlgroup" example-value="{{=day_of_week}}">
+            <select id="dayofweek" example-value="{{=day_of_week}}" >
+              {{for day_number in days_of_the_week:}}
+                <option {{if day_of_week == days_of_the_week[day_number]:}} selected="selected" {{pass}}>{{=days_of_the_week[day_number]}}</option>
+              {{pass}}
+            </select>
+          </div>
+        </fieldset>
+      </div>
+    </td>
+    <td><input id="start" name="start" value='{{=start_time}}' style="width:50px;height:20px;align:center" ></td>
+    <td><input id="end" name="end" value='{{=end_time}}' style="width:50px;height:20px;align:center" ></td>
+    <td><button id="set" class="ui-button ui-widget ui-corner-all"
+                style="color:white;background-color:blue;padding:0;padding-left:4px;padding-right:4px;align:center"
+                >{{if already_set == 1:}}update{{else:}}set{{pass}}</button></td>
+  </tr>
+  {{if already_set == 1:}}
+  <tr>
+    <td></td>
+    <td></td>
+    <td></td>
+    <td><button id="delete" class="ui-button ui-widget ui-corner-all"
+                style="color:white;background-color:red;padding:0;padding-left:4px;padding-right:4px;align:center"
+                >clear</button></td>
+  </tr>
+  {{pass}}
+
+</table>
+
+<script>
+
+    $( "input" ).on("change",
+        function() {
+            var state = 0;
+            var regexp = /\b([01][0-9]|[02][0-3]):[0-5][0-9]$/;
+            var valid_time = ($(this).val().search(regexp) >= 0) ? true : false;
+            if (valid_time) {
+                var ident = $(this).attr("id")
+                var details = ident.split("/")
+                $(this).blur();
+            }
+            else {
+                alert("Invalid time");
+                $(this).focus();
+            };
+        }
+    );
+
+</script>
+
+<script>
+
+    $( "#set" ).click( function() {
+            $.ajax({
+                    url: "{{=URL('default', 'setsavingsession')}}",
+                    data: { dayofweek: $( "#dayofweek" ).val(), start: $( "#start" ).val(), end: $( "#end" ).val()}
+                   });
+            $(this).blur();
+
+            alert("Session set");
+
+            window.location.reload();
+        }
+    );
+
+    $( "#delete" ).click( function() {
+        $.ajax({
+                url: "{{=URL('default', 'setsavingsession')}}",
+                data: { }
+               });
+        $(this).blur();
+
+        alert("Session cleared");
+
+        window.location.reload();
+    }
+);
+
+</script>

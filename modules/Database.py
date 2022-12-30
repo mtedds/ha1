@@ -1,6 +1,7 @@
 
 import sqlite3
 from datetime import datetime
+import os.path
 
 
 # This function is used to convert times (HH:MM:SS) to seconds
@@ -24,6 +25,10 @@ class Database:
         self.dbConnection.row_factory = sqlite3.Row
 
         self.dbConnection.create_function("to_seconds", 1, timeConvert)
+
+        # TODO Parameterise the history database
+        history_database_name = f"{os.path.dirname(inDatabaseFilename)}/controller_history.db"
+        self.dbConnection.execute(f"attach database '{history_database_name}' as 'history'")
 
     def getLastSeconds(self):
         self.logger.debug(f"database getLastSeconds")
@@ -167,11 +172,11 @@ class Database:
         cursor.close()
         return rows
 
-    def objectUpdate(self, inTable, inKeyValue, inUpdates):
+    def object_update(self, inTable, inKeyValue, inUpdates):
         # Takes a key field value with a set of updates and applies to the node row
         # Assumes key column name is "Table"Id, eg. NodeId
         # Also updates the last seen date time
-        self.logger.debug(f"database objectUpdate {inTable}, {inKeyValue}, {inUpdates}")
+        self.logger.debug(f"database object_update {inTable}, {inKeyValue}, {inUpdates}")
         sql = "update " + inTable + " set "
         for column in inUpdates.keys():
             sql = sql + column + "=?,"
@@ -191,28 +196,34 @@ class Database:
         self.logger.debug(f"database nodeCreateUpdate {inGatewayId}, {inMyNode}, {inValues}")
         nodeFound = self.nodeFindFromMyNode(inGatewayId, inMyNode)
         if nodeFound >= 0:
-            self.objectUpdate("Node", nodeFound, inValues)
+            self.object_update("Node", nodeFound, inValues)
         elif nodeFound == -1:
             nodeFound = self.object_create("Node", inValues)
         return nodeFound
 
     # Check if the sensor exists and create if not
     # We are only provided the owning NodeId and MySensors Sensor Id
-    def sensorCreateUpdate(self, inNodeId, inMySensor, inValues):
-        self.logger.debug(f"database sensorCreateUpdate {inNodeId}, {inMySensor}, {inValues}")
-        sensorFound = self.sensorFindFromMySensor(inNodeId, inMySensor)
-        if sensorFound >= 0:
-            self.objectUpdate("Sensor", sensorFound, inValues)
-            return 1
-        elif sensorFound == -1:
-            sensorFound = self.object_create("Sensor", inValues)
-        return sensorFound
+    def sensor_create_update(self, inNodeId, inMySensor, inValues):
+        self.logger.debug(f"database sensor_create_update {inNodeId}, {inMySensor}, {inValues}")
+        sensor_found = self.sensorFindFromMySensor(inNodeId, inMySensor)
+        if sensor_found >= 0:
+            self.object_update("Sensor", sensor_found, inValues)
+        elif sensor_found == -1:
+            sensor_found = self.object_create("Sensor", inValues)
+
+        self.dbConnection.execute(
+            f"""insert into history.sensor_history (SensorId, Value, Time)
+                select sensorid, currentvalue, lastseen
+                from sensor where sensorId = {sensor_found}
+             """)
+
+        return sensor_found
 
     def find_sensor_by_name(self, inSensorName):
         self.logger.debug(f"database find_sensor_by_name {inSensorName}")
         cursor = self.dbConnection.cursor()
         cursor.execute(
-                """select PublishTopic, SubscribeTopic, MySensorsNodeId, MySensorsSensorId, VariableType, Node.NodeId
+                """select SensorName, PublishTopic, SubscribeTopic, MySensorsNodeId, MySensorsSensorId, VariableType, Node.NodeId
                 from Gateway, Node, Sensor
                 where SensorName = ?
                 and Sensor.NodeId = Node.NodeId
@@ -220,6 +231,7 @@ class Database:
                 (inSensorName,))
         row = cursor.fetchone()
         cursor.close()
+
         return row
 
     def get_sensor_value_by_name(self, in_sensor_name):
@@ -234,22 +246,24 @@ class Database:
         cursor.close()
         return row["currentvalue"]
 
-    def timedActionsFired(self, inStartSeconds, inEndSeconds):
-        # TODO implement day of the week!!!
-        self.logger.debug(f"database timedActionsFired {inStartSeconds}, {inEndSeconds}")
+    def timed_actions_fired(self, in_day_number, inStartSeconds, inEndSeconds):
+        self.logger.debug(f"database timed_actions_fired {in_day_number} {inStartSeconds}, {inEndSeconds}")
         cursor = self.dbConnection.cursor()
         cursor.execute(
                 """select Action.ActionId, Action.SensorName, Action.VariableType, Action.SetValue
                 , Action.TimedTriggerToUpdate
                 , TimedTrigger.TimedTriggerID, TimedTrigger.Status
                 , TimedTrigger.Description Description
-                , TimedTrigger.Time, TimedTrigger.Day
+                , TimedTrigger.Time
+                , CASE WHEN TimedTrigger.Day < 0 then ?
+                       ELSE TimedTrigger.Day END Day
                 from TimedTrigger, Action
                 where TimedTrigger.ActionId = Action.ActionId
+                and TimedTrigger.Day in (-1, ?)
                 and to_seconds(Time) between ? and ?
                 order by to_seconds(Time), TimedTrigger.TimedTriggerId
                 """,
-                (inStartSeconds, inEndSeconds))
+                (in_day_number, in_day_number, inStartSeconds, inEndSeconds))
         actions = cursor.fetchall()
         cursor.close()
         return actions
@@ -348,7 +362,7 @@ class Database:
         trigger_times = cursor.fetchall()
         cursor.close()
 
-        # TODO If don't find any, return nothing here
+        # If don't find any, return nothing here
         if len(trigger_times) == 0:
             return {}
 
@@ -409,11 +423,10 @@ class Database:
     def next_relay_switch_time_value(self, in_sensor_name, in_value):
         self.logger.debug(f"database next_relay_switch_time_value {in_sensor_name} {in_value}")
 
-        # TODO Might not return anything if there are no intervals for the sensor
+        # Might not return anything if there are no intervals for the sensor
         currentInterval = self.current_relay_interval_value(in_sensor_name, in_value)
         if len(currentInterval) == 0:
             return {}
-
         return currentInterval[1]["Time"]
 
     def find_triggers_until(self, in_sensor_name, in_start_time, in_end_time):
@@ -547,6 +560,7 @@ class Database:
         self.object_create("TimedTrigger", values)
 
     def delete_once_triggers(self, in_sensor):
+        self.logger.debug(f"database delete_once_triggers {in_sensor}")
         cursor = self.dbConnection.cursor()
         cursor.execute(
             """delete from TimedTrigger
@@ -558,6 +572,17 @@ class Database:
                     and Status = "Once"
                     """,
             (in_sensor,))
+        cursor.close()
+
+    def delete_prefixed_triggers(self, in_prefix):
+        self.logger.debug(f"database delete_prefix_triggers {in_prefix}")
+        cursor = self.dbConnection.cursor()
+        cursor.execute(
+            """delete from TimedTrigger
+                    where description like ?
+                    and Status = "Once"
+                    """,
+            (f"{in_prefix}%",))
         cursor.close()
 
     def find_replace_triggers(self, in_sensor):
@@ -662,6 +687,23 @@ class Database:
         self.dbConnection.commit()
         cursor.close()
 
+    def switch_triggers(self, in_sensor, in_value):
+        self.logger.debug(f"database switch_triggers {in_sensor} {in_value}")
+
+        # Update all the ON triggers for a particular sensor to be inactive / active
+
+        sql = f"""update timedtrigger set status = ?
+                    where timedtriggerid in
+                      (select timedtriggerid from timedtrigger, action
+                       where timedtrigger.actionid = action.actionid
+                         and action.sensorname = ?
+                         and action.setvalue = 1)
+        """
+
+        cursor = self.dbConnection.cursor()
+        cursor.execute(sql, (in_value, in_sensor))
+        self.dbConnection.commit()
+        cursor.close()
 
     def store_prog(self, in_sensor, in_intervals):
         self.logger.debug(f"database store_prog {in_sensor} {in_intervals}")
@@ -705,3 +747,26 @@ class Database:
             sensor_dict[sensor["SensorName"]] = sensor["CurrentValue"]
 
         return sensor_dict
+
+    def read_savingsession(self):
+        self.logger.debug(f"database read_savingsession")
+
+        cursor = self.dbConnection.cursor()
+        cursor.execute(
+            """select Day, Time
+                    from TimedTrigger
+                    where Description like 'SS %'
+                    group by Day, Time
+                    order by Day, Time
+                    """)
+        times = cursor.fetchall()
+        cursor.close()
+
+        if len(times) < 1:
+            return {}
+        elif len(times) == 1:
+            return {"dayofweek": times[0]["Day"], "starttime": times[0]["Time"], "endtime": times[0]["Time"]}
+        if len(times) == 2:
+            return {"dayofweek": times[0]["Day"], "starttime": times[0]["Time"], "endtime": times[1]["Time"]}
+        else:
+            return {}

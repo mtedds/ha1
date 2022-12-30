@@ -52,7 +52,7 @@
     $( "input" ).on("change",
         function() {
             var state = 0;
-            var regexp = /([01][0-9]|[02][0-3]):[0-5][0-9]/;
+            var regexp = /\b([01][0-9]|[02][0-3]):[0-5][0-9]$/;
             var valid_time = ($(this).val().search(regexp) >= 0) ? true : false;
             if (valid_time) {
                 var ident = $(this).attr("id")
@@ -61,11 +61,12 @@
                         url: "{{=URL('default', 'settrigger')}}",
                         data: { sensor: details[0], day: details[1], group: details[2], value: details[3], time: $(this).val()+":00" }
                        })
+                $(this).blur();
             }
             else {
                 alert("Invalid time");
+                $(this).focus();
             };
-            $(this).blur();
         }
     );
 

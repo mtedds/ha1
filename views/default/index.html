@@ -155,7 +155,7 @@ p {
     $( "#{{=hc}}" ).on("change",
         function() {
             var state = 0;
-            var regexp = /([01][0-9]|[02][0-3]):[0-5][0-9]/;
+            var regexp = /\b([01][0-9]|[02][0-3]):[0-5][0-9]$/;
             var valid_time = ($(this).val().search(regexp) >= 0) ? true : false;
             if (valid_time) {
                 if ( $("#{{=f'{hc}_relay'}}").attr("class") == "on" ) { state = 1 };
@@ -166,6 +166,7 @@ p {
                 }
             else {
                 alert("Invalid time");
+                $(this).focus();
                 };
         }
     );
@@ -174,7 +175,7 @@ p {
     $( "#DHW" ).on("change",
         function() {
             var state = 0;
-            var regexp = /([01][0-9]|[02][0-3]):[0-5][0-9]/;
+            var regexp = /\b([01][0-9]|[02][0-3]):[0-5][0-9]$/;
             var valid_time = ($(this).val().search(regexp) >= 0) ? true : false;
             if (valid_time) {
                 if ( $('#DHW_relay').attr("class") == "on" ) { state = 1 };
@@ -185,6 +186,7 @@ p {
                 }
             else {
                 alert("Invalid time");
+                $(this).focus();
                 };
         }
     );
